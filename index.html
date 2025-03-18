@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מה היית מעדיף?</title>
+    <style>
+        body {
+            background-color: #1a1a1a;
+            color: white;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow-x: hidden; /* מונע גלילה אופקית */
+        }
+        .container {
+            max-width: 600px;
+            padding: 20px;
+            background-color: #1e1e1e;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease-in-out;
+            position: relative;
+            margin-right: 220px; /* רווח לצורך הצגת הפרסומת */
+        }
+        .question {
+            font-size: 70px; /* הגדלתי את גודל השאלה ל-70px */
+            margin-bottom: 30px;
+        }
+        .options {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            gap: 15px;
+        }
+        button {
+            width: 45%;
+            height: 120px; /* קובע גובה קבוע לכפתורים */
+            padding: 20px;
+            font-size: 22px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.2s, background-color 0.3s;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        button:hover {
+            transform: scale(1.1);
+            background-color: inherit; /* מונע את שינוי הצבע */
+        }
+        .red {
+            background-color: red;
+            color: white;
+        }
+        .blue {
+            background-color: blue;
+            color: white;
+        }
+        .stats {
+            position: absolute;
+            bottom: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .ad-banner {
+            width: 200px; /* הגדלתי את גודל הפרסומת */
+            height: 600px;
+            background-color: gray;
+            padding: 10px;
+            text-align: center;
+            border-radius: 5px;
+            position: fixed;
+            right: 0;
+            top: 0;
+            margin: 20px; /* רווח בין הפרסומת לדפדפן */
+        }
+        .skip-btn {
+            width: 100%;
+            height: 60px; /* גודל קבוע לכפתור דלג */
+            background-color: #555;
+            color: white;
+            font-size: 18px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="question" id="question">מה היית מעדיף?</div>
+        <div class="options">
+            <button class="red" id="optionA" onclick="vote('red')">
+                <span id="optionA-text"></span>
+                <div class="stats" id="statsA">50%</div>
+            </button>
+            <button class="blue" id="optionB" onclick="vote('blue')">
+                <span id="optionB-text"></span>
+                <div class="stats" id="statsB">50%</div>
+            </button>
+        </div>
+        <button class="skip-btn" onclick="nextQuestion()">דלג</button>
+    </div>
+    <div class="ad-banner">כאן תהיה פרסומת</div>
+
+    <script>
+        let questions = [
+            { q: "מה היית מעדיף?", a: "לאכול רק פיצה", b: "לאכול רק המבורגר" },
+            { q: "מה היית מעדיף?", a: "לטוס לחלל", b: "לצלול למעמקי האוקיינוס" },
+            { q: "מה היית מעדיף?", a: "לחיות ללא אינטרנט", b: "לחיות ללא טלוויזיה" },
+            { q: "מה היית מעדיף?", a: "להיות עשיר אבל עצוב", b: "להיות עני אבל שמח" },
+            { q: "מה היית מעדיף?", a: "לדבר כל השפות בעולם", b: "לנגן בכל כלי נגינה" },
+            { q: "מה היית מעדיף?", a: "להיות בלתי נראה", b: "לקרוא מחשבות" },
+            { q: "מה היית מעדיף?", a: "לזכות בלוטו", b: "לחיות פי שניים יותר זמן" },
+            { q: "מה היית מעדיף?", a: "לטייל בזמן לעבר", b: "לטייל בזמן לעתיד" },
+            { q: "מה היית מעדיף?", a: "להיות מפורסם מאוד אך בודד", b: "להיות אנונימי אך מוקף חברים" },
+            { q: "מה היית מעדיף?", a: "לעבוד בעבודה שאתה אוהב עם שכר נמוך", b: "לעבוד בעבודה שאתה שונא עם שכר גבוה" },
+            { q: "מה היית מעדיף?", a: "לאכול כל החיים רק מתוק", b: "לאכול כל החיים רק מלוח" },
+            { q: "מה היית מעדיף?", a: "לחיות בעולם ללא מוסיקה", b: "לחיות בעולם ללא סרטים" },
+            { q: "מה היית מעדיף?", a: "לראות בחושך בצורה מושלמת", b: "לשמוע קולות רחוקים בבירור" }
+        ];
+
+        let votes = JSON.parse(localStorage.getItem("votes")) || { red: 0, blue: 0 };
+        let currentIndex = 0;
+
+        function loadQuestion() {
+            let randomIndex = Math.floor(Math.random() * questions.length);
+            let q = questions[randomIndex];
+            document.getElementById("question").innerText = q.q;
+            document.getElementById("optionA-text").innerText = q.a;
+            document.getElementById("optionB-text").innerText = q.b;
+            updateStats();
+        }
+
+        function vote(option) {
+            votes[option]++;
+            localStorage.setItem("votes", JSON.stringify(votes));
+
+            // שלח את התשובה לשרת (יש להחליף בכתובת ה-API שלך)
+            fetch('https://yourserver.com/api/votes', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ option })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Response:', data);
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+            });
+
+            updateStats();
+            nextQuestion();
+        }
+
+        function updateStats() {
+            let total = votes.red + votes.blue;
+            let redPercent = total === 0 ? 50 : Math.round((votes.red / total) * 100);
+            let bluePercent = total === 0 ? 50 : 100 - redPercent;
+            document.getElementById("statsA").innerText = `${redPercent}%`;
+            document.getElementById("statsB").innerText = `${bluePercent}%`;
+        }
+
+        function nextQuestion() {
+            currentIndex = (currentIndex + 1) % questions.length;
+            setTimeout(() => {
+                loadQuestion();
+                loadAd();
+            }, 500);
+        }
+
+        function loadAd() {
+            let adContainer = document.querySelector('.ad-banner');
+            let ads = [
+                "פרסומת 1",
+                "פרסומת 2",
+                "פרסומת 3",
+                "פרסומת 4"
+            ];
+            let randomAd = ads[Math.floor(Math.random() * ads.length)];
+            adContainer.innerText = randomAd;
+        }
+
+        loadQuestion();
+    </script>
+</body>
+</html>
